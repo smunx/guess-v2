@@ -1,0 +1,47 @@
+Cabal-Version:       2.4
+Name:                NFT-SC
+Version:             0.1.0.0
+Author:              smunx
+Maintainer:          smunx.gforce@gmail.com
+Build-Type:          Simple
+Copyright:           Dev
+License:             Apache-2.0
+License-files:       LICENSE
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Guess.OnChain
+                     , Guess.OffChain
+                     
+  build-depends:       aeson
+                     , base ^>=4.14.1.0
+                     , bytestring
+                     , cardano-api
+                     , containers
+                     , data-default
+                     , playground-common
+                     , plutus-contract
+                     , plutus-ledger
+                     , plutus-core
+                     , cardano-crypto-class                     
+                     , cardano-ledger-core
+                     , cardano-ledger-shelley
+                     , cardano-wallet-core
+                     , plutus-ledger-api
+                     , plutus-script-utils
+                     , plutus-ledger-constraints
+                     , plutus-use-cases
+                     , plutus-tx-plugin
+                     , plutus-tx
+                     , plutus-pab
+                     , openapi3
+                     , prettyprinter
+                     , serialise
+                     , text
+                     , lens
+                     , hashable
+                     , freer-extras
+                     , charset
+  default-language:    Haskell2010
+  ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise  -fplugin-opt PlutusTx.Plugin:defer-errors
+
