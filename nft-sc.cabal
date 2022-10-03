@@ -22,6 +22,7 @@ library
                      , playground-common
                      , plutus-contract
                      , plutus-ledger
+                     , plutus-ledger-constraints
                      , plutus-core
                      , cardano-crypto-class                     
                      , cardano-ledger-core
@@ -30,10 +31,10 @@ library
                      , plutus-ledger-api
                      , plutus-script-utils
                      , plutus-ledger-constraints
-                     , plutus-use-cases
+                     --, plutus-use-cases
                      , plutus-tx-plugin
                      , plutus-tx
-                     , plutus-pab
+                     --, plutus-pab
                      , openapi3
                      , prettyprinter
                      , serialise

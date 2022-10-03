@@ -3,6 +3,9 @@
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 
 --This is to work not only with Strings
 {-# LANGUAGE OverloadedStrings   #-}
@@ -13,74 +16,54 @@
 {-# LANGUAGE TypeApplications    #-}
 
 
--- module Guess.OnChain(
---       apiScript
---     , scriptAsCbor
---     , writeSerialisedScript
---     , validator
---     , validatorHash
---     , Dat(..)
---     , address
---     , Redeem(..)
---     , Simple
--- )
-module Guess.OnChain
- where
--- Sections of a Plutus contract
+module Guess.OnChain where
 
+import PlutusTx qualified
 
---2 Imports
-import PlutusTx
-import PlutusTx.Prelude
-import qualified Ledger.Address                                  as V1LAddress
-import qualified Plutus.V2.Ledger.Api                            as V2LedgerApi
-import qualified Plutus.V2.Ledger.Contexts                       as Contexts
-import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as V2UtilsTypeScripts
-import qualified Prelude                                         as P
+import PlutusTx.Prelude (
+    ($),
+    (==),
+    Bool(..), 
+    Integer,
+    traceIfFalse)
 
-import           Cardano.Api
-import           Cardano.Api.Shelley             (PlutusScript (..))
-import           Codec.Serialise
+import Ledger (
+    scriptHashAddress)
 
---3 Onchain code
+import Plutus.V2.Ledger.Api (
+    Address,
+    ValidatorHash,
+    ScriptContext(..),
+    Validator,
+    mkValidatorScript)
 
-newtype Redeem = Redeem
-    {
-        redeem :: Integer
-    } deriving P.Show
+import Plutus.Script.Utils.V2.Scripts (
+    mkUntypedValidator,
+    validatorHash)
 
-PlutusTx.unstableMakeIsData ''Redeem -- This is to instantiate the IsData class
+import Prelude(Show(..))
+import GHC.Generics (Generic)
+import Data.Aeson (ToJSON, FromJSON)
 
-newtype Dat = Dat 
-    {
-        ddata :: Integer
-    } deriving P.Show
+data Redeem = Redeem Integer
+    deriving (Generic, FromJSON, ToJSON, Show)
+PlutusTx.makeIsDataIndexed ''Redeem [('Redeem, 0)]
 
-PlutusTx.unstableMakeIsData ''Dat
+data Dat = Dat Integer
+    deriving (Generic, FromJSON, ToJSON, Show)
+PlutusTx.makeIsDataIndexed ''Dat [('Dat, 0)]
 
-data Simple
-instance V2UtilsTypeScripts.ValidatorTypes Simple where
-    type instance RedeemerType Simple = Redeem
-    type instance DatumType Simple = Dat
+{-# INLINABLE simple #-}
+simple :: Dat -> Redeem -> ScriptContext -> Bool
+simple (Dat i) (Redeem j) _ = traceIfFalse "Sorry the guess is not correct" (i == j)
 
-{-# INLINABLE simpleType #-}
---Actual validator logic
-simpleType :: Dat -> Redeem -> Contexts.ScriptContext -> Bool
-simpleType d r _ = traceIfFalse "Sorry the guess is not correct" (ddata d == redeem r)
+validator :: Validator
+validator = mkValidatorScript 
+              $ $$(PlutusTx.compile [|| wrap ||])
+    where wrap = mkUntypedValidator simple
 
+hash :: ValidatorHash
+hash = validatorHash validator
 
---Boilerplate
-simpleTypeV :: V2UtilsTypeScripts.TypedValidator Simple
-simpleTypeV = V2UtilsTypeScripts.mkTypedValidator @Simple 
-    $$(compile [|| simpleType ||])
-    $$(compile [|| wrap ||]) where
-        wrap = V2UtilsTypeScripts.mkUntypedValidator @Dat @Redeem
-
-validator :: V2LedgerApi.Validator
-validator = V2UtilsTypeScripts.validatorScript simpleTypeV
-
-validatorHash :: V2LedgerApi.ValidatorHash
-validatorHash = V2UtilsTypeScripts.validatorHash simpleTypeV
-
-address :: V1LAddress.Address
-address = V1LAddress.scriptHashAddress validatorHash
+address :: Address
+address = scriptHashAddress hash

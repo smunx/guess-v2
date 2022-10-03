@@ -4,3 +4,7 @@
 .\#*
 log.txt
 /dist-newstyle
+.gitignore
+cabal.project-old
+src/Guess/OffChain-old.hs
+src/Guess/OnChain-old.hs
