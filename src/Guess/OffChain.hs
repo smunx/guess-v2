@@ -43,10 +43,11 @@ import Ledger.Tx (getCardanoTxId)
 
 import Ledger.Ada (lovelaceValueOf)
 import Ledger.Constraints (
-    mustPayToOtherScript,
+    mustPayToOtherScript, mustPayToOtherScriptWithDatumInTx,
     otherScript,
     mustSpendScriptOutput,
-    unspentOutputs)
+    unspentOutputs,
+    plutusV2OtherScript)
 import Plutus.V2.Ledger.Api (Datum(..), Redeemer (..))
 
 import Guess.OnChain qualified as OnChain
@@ -60,15 +61,15 @@ trace = do
     void $ activateContractWallet w1 (lock 0)
     logInfo @String "Locked!"
     void $ waitNSlots 3
-    void $ activateContractWallet w2 (guess 1)
+    void $ activateContractWallet w2 (guess 0)
     logInfo @String "Guessed!"
 
 lock :: Integer -> Contract () EmptySchema Text ()
 lock i = do
     let dat = Datum $ PlutusTx.toBuiltinData $ OnChain.Dat i
     let val = lovelaceValueOf 5_000_000
-    let tx = mustPayToOtherScript OnChain.hash dat val
-    let lookups = otherScript OnChain.validator
+    let tx = mustPayToOtherScriptWithDatumInTx OnChain.hash dat val
+    let lookups = plutusV2OtherScript OnChain.validator
     stx <- submitTxConstraintsWith @Void lookups tx
     void $ awaitTxConfirmed $ getCardanoTxId stx
     Contract.logInfo @String "Locked lovelace!" 
@@ -82,7 +83,7 @@ guess i = do
         (oref, txo) : _ -> do
             let rdr = Redeemer $ PlutusTx.toBuiltinData $ OnChain.Redeem i
             let tx = mustSpendScriptOutput oref rdr
-            let lookups = otherScript OnChain.validator <> unspentOutputs (Map.singleton oref txo)
+            let lookups = plutusV2OtherScript OnChain.validator <> unspentOutputs (Map.singleton oref txo)
             stx <- submitTxConstraintsWith @Void lookups tx
             void $ awaitTxConfirmed $ getCardanoTxId stx
             Contract.logInfo @String "Guessed!"

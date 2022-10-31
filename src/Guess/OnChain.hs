@@ -28,7 +28,10 @@ import PlutusTx.Prelude (
     traceIfFalse)
 
 import Ledger (
-    scriptHashAddress)
+    scriptHashAddress,
+    Versioned(..),
+    Language (..),
+    toValidatorHash)
 
 import Plutus.V2.Ledger.Api (
     Address,
@@ -37,13 +40,13 @@ import Plutus.V2.Ledger.Api (
     Validator,
     mkValidatorScript)
 
-import Plutus.Script.Utils.V2.Scripts (
-    mkUntypedValidator,
-    validatorHash)
+import Plutus.Script.Utils.V2.Typed.Scripts.Validators as V2
+import Plutus.Script.Utils.V2.Address (mkValidatorAddress)
 
 import Prelude(Show(..))
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
+import Data.Maybe (fromJust)
 
 data Redeem = Redeem Integer
     deriving (Generic, FromJSON, ToJSON, Show)
@@ -62,8 +65,8 @@ validator = mkValidatorScript
               $ $$(PlutusTx.compile [|| wrap ||])
     where wrap = mkUntypedValidator simple
 
-hash :: ValidatorHash
-hash = validatorHash validator
-
 address :: Address
-address = scriptHashAddress hash
+address = mkValidatorAddress validator
+
+hash :: ValidatorHash
+hash = fromJust $ toValidatorHash address
